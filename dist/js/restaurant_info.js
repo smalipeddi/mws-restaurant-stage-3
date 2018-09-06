@@ -15,7 +15,9 @@ var restaurant = void 0,
     createReviewHTML = void 0,
     fillBreadcrumb = void 0,
     event = void 0;
-var newMap;
+var newMap, addReview;
+var offlineReviews = [];
+var offlineReviewsFromLocalStorage = [];
 
 /**
  * Initialize map as soon as the page is loaded.
@@ -50,22 +52,6 @@ initMap = function initMap() {
   });
 };
 
-/* window.initMap = () => {
-  fetchRestaurantFromURL((error, restaurant) => {
-    if (error) { // Got an error!
-      console.error(error);
-    } else {
-      self.map = new google.maps.Map(document.getElementById('map'), {
-        zoom: 16,
-        center: restaurant.latlng,
-        scrollwheel: false
-      });
-      fillBreadcrumb();
-      DBHelper.mapMarkerForRestaurant(self.restaurant, self.map);
-    }
-  });
-} */
-
 /**
  * Get current restaurant from page URL.
  */
@@ -87,6 +73,7 @@ fetchRestaurantFromURL = function fetchRestaurantFromURL(callback) {
         console.error(error);
         return;
       }
+
       fillRestaurantHTML();
       callback(null, restaurant);
     });
@@ -107,19 +94,22 @@ fillRestaurantHTML = function fillRestaurantHTML() {
 
   var image = document.getElementById("restaurant-img");
   image.className = "restaurant-img";
-  image.src = DBHelper.imageUrlForRestaurant(restaurant);
+  image.className = "lazyload";
+  image.setAttribute('data-src', DBHelper.imageUrlForRestaurant(restaurant));
+
+  // image.src = DBHelper.imageUrlForRestaurant(restaurant);
   /* Add alt to images */
   image.alt = restaurant.name;
-  var restaurant_photograph = restaurant.photograph;
+  var restaurant_photograph = restaurant.id;
 
   /**
   * Add srcset and sizes attributes for images
   */
-  var small_images = restaurant_photograph.split(".")[0].concat("_300.jpg");
-  var large_images = restaurant_photograph.split(".")[0].concat("_600.jpg");
+  var small_images = restaurant_photograph + "_300.webp";
+  var large_images = restaurant_photograph + "_600.webp";
   image.srcset = "banners/" + large_images + " 600w" + "," + "banners/" + small_images + " 300w";
-
-  image.src = "banners/" + large_images;
+  image.setAttribute('data-src', "banners/" + large_images);
+  // image.src = "banners/"+ large_images;
   image.sizes = "(max-width: 325px) 100vw 50vw";
 
   var cuisine = document.getElementById("restaurant-cuisine");
@@ -129,8 +119,8 @@ fillRestaurantHTML = function fillRestaurantHTML() {
   if (restaurant.operating_hours) {
     fillRestaurantHoursHTML();
   }
-  // fill reviews
-  fillReviewsHTML();
+
+  DBHelper.fetchReviewsByRestaurantId(restaurant.id, fillReviewsHTML);
 };
 
 /**
@@ -158,13 +148,22 @@ fillRestaurantHoursHTML = function fillRestaurantHoursHTML() {
 /**
  * Create all reviews HTML and add them to the webpage.
  */
-fillReviewsHTML = function fillReviewsHTML() {
-  var reviews = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : self.restaurant.reviews;
-
+fillReviewsHTML = function fillReviewsHTML(error, reviews) {
+  //self.restaurant.reviews = reviews;
   var container = document.getElementById("reviews-container");
   var title = document.createElement("h2");
   title.innerHTML = "Reviews";
   container.appendChild(title);
+  var id = parseInt(getParameterByName('id'));
+  //Get reviews from local storage if they are added  when offline
+  var offlineReviewsFromLocalStorage = DBHelper.getReviewsFromlocalStorage(id);
+
+  if (offlineReviewsFromLocalStorage !== undefined && offlineReviewsFromLocalStorage.length !== 0) {
+    var offlineReviews = offlineReviewsFromLocalStorage;
+    // DBHelper.saveReviewsToDatabase(data);
+    // DBHelper.sendReviewToServer(data);
+    var reviews = reviews.concat(offlineReviews);
+  }
 
   if (!reviews) {
     var noReviews = document.createElement("p");
@@ -190,7 +189,9 @@ createReviewHTML = function createReviewHTML(review) {
   li.appendChild(name);
 
   var date = document.createElement("p");
-  date.innerHTML = review.date;
+  var convertedDate = new Date(review.createdAt).toLocaleString();
+
+  date.innerHTML = convertedDate;
   li.appendChild(date);
 
   var rating = document.createElement("p");
@@ -202,6 +203,60 @@ createReviewHTML = function createReviewHTML(review) {
   li.appendChild(comments);
 
   return li;
+};
+
+addReview = function addReview() {
+
+  console.log("clicked submit");
+
+  var url = window.location.href;
+  var id = parseInt(getParameterByName('id'));
+
+  var name = document.getElementById('reviewer_name').value;
+  var rating = document.getElementById('select_rating');
+  var rating_value = rating.options[rating.selectedIndex].value;
+  var comment = document.getElementById('reviewer_comment').value;
+
+  if (name == "") {
+    alert("Name must be filled out");
+    return false;
+  } else if (comment == "") {
+    alert("Comment must be filled out");
+    return false;
+  } else {
+    var jsonToSend = {
+      "restaurant_id": id,
+      "name": name,
+      "createdAt": new Date(),
+      "rating": rating_value,
+      "comments": comment
+    };
+    if (window.navigator.onLine) {
+
+      // //see if there are any reviews in the local storage , if so save them into database and then access them .
+      // var listofReviewsFromLocalStorage = DBHelper.getReviewsFromlocalStorage();
+      // if(listofReviewsFromLocalStorage !== null || listofReviewsFromLocalStorage !== undefined){
+      //     DBHelper.saveReviewsToDatabase(listofReviewsFromLocalStorage);
+      // }
+
+      DBHelper.sendReviewToServer(jsonToSend);
+    } else {
+      // If offline get the existing local storage and save data into local storage 
+      var existing = localStorage.getItem('reviews');
+      existing = existing ? JSON.parse(existing) : [];
+      existing.push(jsonToSend);
+      localStorage.setItem('reviews', JSON.stringify(existing));
+    }
+
+    var container = document.getElementById("reviews-container");
+    var ul = document.getElementById("reviews-list");
+    ul.insertBefore(createReviewHTML(jsonToSend), ul.childNodes[0]);
+    container.appendChild(ul);
+
+    var reviewForm = document.getElementById('reviewForm');
+    reviewForm.reset();
+  }
+  return false;
 };
 
 /**

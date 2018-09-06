@@ -1,5 +1,5 @@
 importScripts('/js/idb.js');
-var CACHE_NAME = 'mws-restaurant-stage-1-cache';
+var CACHE_NAME = 'mws-restaurant-stage-1-cache::';
 
 var urlsToCache = [
   '/',
@@ -28,10 +28,13 @@ var urlsToCache = [
 self.addEventListener('install', (event) => {
   // Perform install steps
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(function (cache) {
+    caches.open(CACHE_NAME + 'runtime')
+      .then((cache) => {
         console.log('Opened cache');
         return cache.addAll(urlsToCache);
+      })
+      .then(() => {
+        console.log(' SW install complete');
       })
   );
 });
@@ -41,16 +44,42 @@ self.addEventListener('activate', event => {
 });
 
 
-self.addEventListener('fetch', function(event) {
+self.addEventListener("fetch", function(event) {
+  console.log('SW : fetch event in progress.');
+
+  if (event.request.method !== 'GET' && !event.request.url.includes("browser-sync")) {
+    console.log('WORKER: fetch event ignored.', event.request.method, event.request.url);
+    return;
+  }
+  
   event.respondWith(
-    caches.open(CACHE_NAME).then(function(cache) {
-      return cache.match(event.request).then(function (response) {
-        return response || fetch(event.request).then(function(response) {
-          cache.put(event.request, response.clone());
-          return response;
-        });
-      });
-    })
+    caches.match(event.request)
+    .then((cached)  => {
+          return cached || fetch(event.request)
+                           .then(response => {
+                                 var cacheCopy = response.clone();
+                                 caches.open(CACHE_NAME + 'pages')
+                                 .then(function add(cache) {
+                                       cache.put(event.request, cacheCopy);
+                                      })
+                                 .then(() => {
+                                    console.log('WORKER: fetch response stored in cache.', event.request.url);
+                                  });
+                            return response;
+                      })
+      })
   );
 });
+  // event.respondWith(
+  //   caches.open(CACHE_NAME).then(function(cache) {
+  //     return cache.match(event.request).then(function (response) {
+  //       return response || fetch(event.request);
+  //       // .then(function(response) {
+  //       //   cache.put(event.request, response.clone());
+  //       //   return response;
+  //       //});
+  //     });
+  //   })
+  // );
+//});
 

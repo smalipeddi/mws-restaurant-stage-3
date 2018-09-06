@@ -67,7 +67,7 @@ class DBHelper {
         });
 
     }else{
-      return DBHelper.cacheDataFromDb().then(restaurants => {
+      return DBHelper.cacheRestaurantsFromDb().then(restaurants => {
         if(restaurants.length){
           callback(null, restaurants);
         }
@@ -78,7 +78,7 @@ class DBHelper {
  /**
   * Cache Restaurants from Database
   */
-  static cacheDataFromDb(){
+  static cacheRestaurantsFromDb(){
     var dbPromise = DBHelper.openDatabase();
 
 
@@ -89,6 +89,23 @@ class DBHelper {
     });
 
     return restaurants;
+  }
+
+
+  /**
+  * Cache Reviews from Database
+  */
+  static cacheReviewsFromDb(id){
+    var dbPromise = DBHelper.openDatabase();
+
+
+    var reviews = dbPromise.then(function (db) {
+       var tx = db.transaction("reviewsList", "readonly");
+       var store = tx.objectStore("reviewsList");
+       return store.getAll(id);
+    });
+
+    return reviews;
   }
 
   /**
@@ -108,17 +125,11 @@ class DBHelper {
         });
 
     }else{
-
-      var dbPromise = DBHelper.openDatabase();
-      var reviews = dbPromise.then(function (db) {
-        var tx = db.transaction("reviewsList", "readonly");
-        var store = tx.objectStore("reviewsList");
-        return store.getAll(id);
+      return DBHelper.cacheReviewsFromDb().then(reviews => {
         if(reviews.length){
           callback(null, reviews);
         }
       });
-
     }
    
   }
@@ -214,8 +225,6 @@ class DBHelper {
         return response.json();
     })
     .then((data) => {console.log(`Saved reviews successfully`);
-      console.log("sunitja");
-      console.log(data);
       DBHelper.saveReviewsToDatabase(data);
 
     })
@@ -234,11 +243,15 @@ class DBHelper {
     //get the reviews from local storage , send them and delete it from the local  storage 
     if(window.localStorage.getItem("reviews") !== null){
       offlineReviewsList = JSON.parse(window.localStorage.getItem("reviews"));
-      console.log(offlineReviewsList);
+     
       for(var i = 0 ; i < offlineReviewsList.length; i++){
-        if(offlineReviewsList[i]['restaurant_id'] === id)
-        offlineReviews.push(offlineReviewsList[i]);
-        offlineReviewsList.splice(i,1);
+        if(offlineReviewsList[i]['restaurant_id'] === id){
+          if(window.navigator.onLine)
+            DBHelper.sendReviewToServer(offlineReviewsList[i]);
+            offlineReviews.push(offlineReviewsList[i]);
+            offlineReviewsList.splice(i,1);
+        
+        }
         localStorage["reviews"] = JSON.stringify(offlineReviewsList);
 
       }

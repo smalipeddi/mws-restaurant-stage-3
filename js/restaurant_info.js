@@ -4,7 +4,7 @@
 /*eslint no-unused-vars: ["error", { "vars": "local" }]*/
 
 let restaurant,initMap,fetchRestaurantFromURL,fillRestaurantHTML,getParameterByName,fillRestaurantHoursHTML,fillReviewsHTML,createReviewHTML,fillBreadcrumb,event;
-var newMap;
+var newMap, addReview;
 var offlineReviews = [];
 var offlineReviewsFromLocalStorage = [];
 
@@ -146,6 +146,7 @@ fillReviewsHTML = (error ,reviews) => {
   if(offlineReviewsFromLocalStorage !== undefined && offlineReviewsFromLocalStorage.length !== 0){
     var offlineReviews = (offlineReviewsFromLocalStorage);
    // DBHelper.saveReviewsToDatabase(data);
+   // DBHelper.sendReviewToServer(data);
     var reviews = reviews.concat(offlineReviews);
   }
 
