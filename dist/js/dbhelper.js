@@ -86,8 +86,8 @@ var DBHelper = function () {
     }
 
     /**
-     * Cache Restaurants from Database
-     */
+    * Cache Restaurants from Database
+    */
 
   }, {
     key: "cacheRestaurantsFromDb",
@@ -244,8 +244,8 @@ var DBHelper = function () {
     }
 
     /**
-     * Send reviews to the Server and save to Database.
-     */
+    * Send reviews to the Server and save to Database.
+    */
 
   }, {
     key: "sendReviewToServer",

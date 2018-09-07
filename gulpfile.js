@@ -12,6 +12,18 @@ var uglify = require("gulp-uglify-es").default;
 var gutil = require("gulp-util");
 var babel = require("gulp-babel");
 var sourcemaps = require('gulp-sourcemaps');
+var jsmin = require('gulp-jsmin');
+var gzip = require('gulp-gzip');
+var cleanCSS = require('gulp-clean-css');
+
+var paths = {
+  dist: 'dist/',
+  js_dist: 'dist/js',
+  css_dist: 'dist/css',
+  img_dist: 'dist/img',
+  mainjs: ['/app.js', '/js/dbhelper.js', '/js/main.js']
+}
+
 
 gulp.task("default",["styles","copy-html","copy-images","lint"], function(cb){
   gulp.watch("sass/**/*.scss" , ["styles"]);
@@ -30,16 +42,22 @@ gulp.task("scripts", () => {
   .pipe(babel())
   .pipe(gulp.dest("./dist/js"));
 
-
 });
+
+
+
+gulp.task('minify-css', () => {
+  return gulp.src('./*.css')
+    .pipe(cleanCSS({compatibility: 'ie8'}))
+    .pipe(gulp.dest('dist/css'));
+});
+
 
 gulp.task("scripts-dist", () => {
   gulp.src("js/**/*.js")
-  .pipe(sourcemaps.init())
   .pipe(babel())
   .pipe(concat("all.js"))
-  .pipe(uglify("all.js"))
-  .pipe(sourcemaps.write())
+  .pipe(jsmin("all.js"))
   .pipe(gulp.dest("./dist/js"));
 });
 
@@ -53,6 +71,13 @@ gulp.task("styles", function(cb){
     .pipe(browserSync.stream());
   cb();
 });
+
+gulp.task('sass', ['clean'], function () {
+    return gulp.src('./**.scss')
+      .pipe(sass().on('error', sass.logError))
+      .pipe(gulp.dest(paths.css_dist));
+  });
+
 
 gulp.task("tests", function(){
   gulp.src("tests/spec/extra.js").
@@ -76,13 +101,6 @@ gulp.task("lint", () => {
     .pipe(eslint.failOnError());
 });
 
-// gulp.task('default', gulp.series(['styles' ,'lint']), function(cb){
-// 	gulp.watch('sass/**/*.scss',['styles']);
-//     gulp.watch('js/**/*.js',['lint']);
-//     gulp.watch('build/index.html').on('change' ,browserSync.reload);
-    
-// 	cb();
-// });
 
 gulp.task("copy-html", () => {
   gulp.src("./index.html")
@@ -99,8 +117,14 @@ gulp.task("copy-images", () => {
     
 });
 
-
-
+gulp.task('js_main' , function () {
+    return gulp.src(paths.mainjs)
+        .pipe(concat('main_new.js'))
+        .pipe(jsmin())
+        .pipe(uglify())
+        .pipe(gzip())
+        .pipe(gulp.dest(paths.js_dist));
+});
 // Static Server + watching scss/html files
 gulp.task("serve", ["styles"], function(cb) {
   browserSync.init({
@@ -115,37 +139,3 @@ gulp.task("serve", ["styles"], function(cb) {
 gulp.task('dist' ,['copy-html' ,'copy-images' ,'lint' ,'styles' ,'scripts-dist']);
 
 
-
-//var 'browser-sync' = require('browser-sync');
-// function defaultTask(cb) {
-//   // place code for your default task here
-//   cb();
-//   console.log("hello gulp");
-// }
-
-//exports.default = defaultTask
-
-
-// // process JS files and return the stream.
-// gulp.task('js', function () {
-//     return gulp.src('js/*js')
-//         .pipe(uglify())
-//         .pipe(gulp.dest('dist/js'));
-// });
-
-// // create a task that ensures the `js` task is complete before
-// // reloading browsers
-// gulp.task('js-watch', ['js'], function (done) {
-//     browserSync.reload();
-//     done();
-// });
-
-
-// // or...
-
-// gulp.task('browser-sync', function() {
-//     browserSync.init({
-//         proxy: "yourlocal.dev"
-//     });
-//     cb();
-// });

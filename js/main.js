@@ -204,29 +204,21 @@ createRestaurantHTML = (restaurant) => {
           fav.src = "icons/unlike.svg"
           fav.alt = "remove from favorite";
       // }
-      
-     // DBHelper.saveRestaurantFavoriteToDatabase(restaurant.is_favorite , restaurant.id);
     }else
     {
-       
-        //if(restaurant.hasOwnProperty('is_favorite')){
           restaurant['is_favorite'] = "true";
           fav.src = "icons/like.svg";
           fav.alt ="add to favorite";
-        //}
-        // restaurant.is_favourite = "true";
-     }
-     if(window.navigator.onLine){
-      
-       
+    }
+    if(window.navigator.onLine){
         DBHelper.sendRestaurantFavoriteToServer( restaurant.id ,restaurant.is_favorite);
-     }else{
+    }else{
         // If offline get the existing local storage and save data into local storage 
         var existing = localStorage.getItem('restaurant_favorite');
         existing = existing ? JSON.parse(existing) : [];
         existing.push(restaurant);
         localStorage.setItem('restaurant_favorite', JSON.stringify(existing));
-     }
+    }
     this.append(fav);
   }
   anchor.append(fav);

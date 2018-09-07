@@ -75,7 +75,7 @@ class DBHelper {
     }
   }
 
- /**
+  /**
   * Cache Restaurants from Database
   */
   static cacheRestaurantsFromDb(){
@@ -97,7 +97,6 @@ class DBHelper {
   */
   static cacheReviewsFromDb(id){
     var dbPromise = DBHelper.openDatabase();
-
 
     var reviews = dbPromise.then(function (db) {
        var tx = db.transaction("reviewsList", "readonly");
@@ -199,8 +198,6 @@ class DBHelper {
       });   
      
     });
-
-    
   }
 
    /**
@@ -223,7 +220,7 @@ class DBHelper {
       });
     }
 
-  /**
+   /**
    * Send reviews to the Server and save to Database.
    */
 

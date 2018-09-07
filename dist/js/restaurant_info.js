@@ -160,8 +160,6 @@ fillReviewsHTML = function fillReviewsHTML(error, reviews) {
 
   if (offlineReviewsFromLocalStorage !== undefined && offlineReviewsFromLocalStorage.length !== 0) {
     var offlineReviews = offlineReviewsFromLocalStorage;
-    // DBHelper.saveReviewsToDatabase(data);
-    // DBHelper.sendReviewToServer(data);
     var reviews = reviews.concat(offlineReviews);
   }
 
@@ -234,8 +232,6 @@ addReview = function addReview() {
     if (window.navigator.onLine) {
 
       // //see if there are any reviews in the local storage , if so save them into server and then access them .
-
-
       DBHelper.sendReviewToServer(jsonToSend);
     } else {
       // If offline get the existing local storage and save data into local storage 
