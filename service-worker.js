@@ -1,5 +1,5 @@
 importScripts('/js/idb.js');
-var CACHE_NAME = 'mws-restaurant-stage-1-cache::';
+const CACHE_NAME = 'mws-restaurant-stage-1-cache::';
 
 var urlsToCache = [
   '/',
