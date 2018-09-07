@@ -79,24 +79,59 @@ fillRestaurantHTML = (restaurant = self.restaurant) => {
   address.innerHTML = restaurant.address;
 
   const image = document.getElementById("restaurant-img");
-  image.className = "restaurant-img";
-  image.className = "lazyload";
-  image.setAttribute('data-src', DBHelper.imageUrlForRestaurant(restaurant));
-  
- // image.src = DBHelper.imageUrlForRestaurant(restaurant);
+ // image.className = "restaurant-img";
   /* Add alt to images */
   image.alt = restaurant.name;
   var restaurant_photograph = restaurant.id;
 
+//  image.src = DBHelper.imageUrlForRestaurant(restaurant);
+  
+  var small_images = (restaurant_photograph) + ("_300.webp");
+  var large_images = (restaurant_photograph) + ("_600.webp");
+
   /**
   * Add srcset and sizes attributes for images
   */
-  var small_images = (restaurant_photograph) + ("_300.webp");
-  var large_images = (restaurant_photograph) + ("_600.webp");
-  image.srcset = "banners/" + large_images + " 600w" + "," +  "banners/" + small_images +  " 300w";
-  image.setAttribute('data-src' , ("banners/"+ large_images));
+  
+ // image.srcset = "banners/" + large_images + " 600w" + "," +  "banners/" + small_images +  " 300w";
  // image.src = "banners/"+ large_images;
   image.sizes = "(max-width: 325px) 100vw 50vw";
+
+  // LAZY LOADING  OF IMAGES
+  const options = {
+    threshold: 0.2
+  };
+
+  let observer;
+  if ('IntersectionObserver' in window) {
+    observer = new IntersectionObserver(events, options);
+    observer.observe(image);
+
+  } else {
+    //Just load images as it is without lazy loading
+    displayImages(image);
+  }
+  const displayImages = image => {
+    image.className = 'restaurant-img';
+    image.src = DBHelper.imageUrlForRestaurant(restaurant);
+    image.srcset = "banners/" + small_images + " 1x" + "," +  "banners/" + large_images +  " 2x";
+    // image.src = "banners/"+ large_images;
+  
+  }
+
+  function events(events, observer) {
+    events.forEach(event => {
+      if (event.intersectionRatio > 0) {
+        //Display images
+        displayImages(event.target);
+        observer.unobserve(event.target);
+      } else {
+        
+      }
+    });
+  }  
+
+
 
   const cuisine = document.getElementById("restaurant-cuisine");
   cuisine.innerHTML = restaurant.cuisine_type;
