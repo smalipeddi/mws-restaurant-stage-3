@@ -137,7 +137,7 @@ class DBHelper {
   /**
    * Save Restaurants to Database
    */
-  static saveRestaurantsToDatabase(restaurants){
+  static saveRestaurantsFavoriteToDatabase(restaurants){
     var dbPromise = DBHelper.openDatabase();
 
     /* Store data in database */
@@ -148,7 +148,7 @@ class DBHelper {
           
       /* iterate through data and store in db */
       restaurants.forEach(res => {
-        store.put(res);
+        store.getAll(restaurants.id).put(res);
       });
       return tx.complete;
     });
@@ -186,27 +186,43 @@ class DBHelper {
    * Toggle restaurant favourite
    */
   static saveRestaurantFavoriteToDatabase(isFavorite , restaurantId){
-   
-    fetch(`http://localhost:1337/restaurants/${restaurantId}/?is_favorite=${isFavorite}`, {
-        method: 'PUT'
-    })
-    .then(function(){
-      var dbPromise = DBHelper.openDatabase();
-      /* Store data in database */
-      dbPromise.then(db => {
-        if(!db) return ;
-        const tx = db.transaction("restaurantsList", "readwrite");
-        let store = tx.objectStore("restaurantsList");
-        store.get(restaurantId).then(function(restaurantById){
-          restaurantById.is_favorite = isFavorite;
-          store.put(restaurantById);
-        });   
-     
-      });
+    var dbPromise = DBHelper.openDatabase();
 
-    })
+    /* Store data in database */
+    dbPromise.then(db => {
+      if(!db) return ;
+      const tx = db.transaction("restaurantsList", "readwrite");
+      let store = tx.objectStore("restaurantsList");
+      store.get(restaurantId).then(function(restaurant){
+        restaurant['is_favorite'] = isFavorite.toString();
+        store.put(restaurant);
+      });   
+     
+    });
+
+    
   }
- 
+
+   /**
+   * Send reviews to the Server and save to Database.
+   */
+
+  static sendRestaurantFavoriteToServer(restaurantId ,isFavorite ) {
+   
+    console.log('Updating Restaurant Favorite : ', isFavorite);
+    var url = "http://localhost:1337/restaurants/"  + restaurantId + "/?is_favorite=" + isFavorite;
+  
+    fetch(url, {method: 'PUT'}).
+    then(function (response) {
+        return response.json();
+      }).then(function (data) {
+        console.log("Saved favorite successfully");
+        DBHelper.saveRestaurantFavoriteToDatabase(isFavorite , restaurantId);
+      }).catch(function (error) {
+        return console.log('error:', error);
+      });
+    }
+
   /**
    * Send reviews to the Server and save to Database.
    */
@@ -233,6 +249,41 @@ class DBHelper {
 
   static saveReviewsTolocalStorage(offlineReviewsList){
     window.localStorage.setItem("reviews" , JSON.stringify(offlineReviewsList));
+
+  }
+
+
+  static saveRestaurantTolocalStorage(offlineRestaurantList){
+    window.localStorage.setItem("restaurant_favorite" , JSON.stringify(offlineRestaurantList));
+
+  }
+
+  static getRestaurantsFromlocalStorage(id){
+    var offlineRestaurantFav = [];
+    var offlineRestaurantFavList;
+
+    //get the reviews from local storage , send them and delete it from the local  storage 
+    if(window.localStorage.getItem("restaurant_favorite") !== null){
+      offlineRestaurantFavList = JSON.parse(window.localStorage.getItem("restaurant_favorite"));
+     
+      for(var i = 0 ; i < offlineRestaurantFavList.length; i++){
+        if(offlineRestaurantFavList[i]['id'] === id){
+          if(window.navigator.onLine){
+            var id = offlineRestaurantFavList[i].id;
+            var fav = offlineRestaurantFavList[i]['is_favorite'];
+            DBHelper.sendRestaurantFavoriteToServer(id ,fav);
+            
+          }
+            offlineRestaurantFav.push(offlineRestaurantFavList[i]);
+            offlineRestaurantFavList.splice(i,1);
+        
+        }
+        localStorage["restaurant_favorite"] = JSON.stringify(offlineRestaurantFavList);
+
+      }
+      
+    }
+    return offlineRestaurantFav;
 
   }
 

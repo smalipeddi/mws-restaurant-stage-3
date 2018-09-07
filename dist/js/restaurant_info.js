@@ -233,11 +233,8 @@ addReview = function addReview() {
     };
     if (window.navigator.onLine) {
 
-      // //see if there are any reviews in the local storage , if so save them into database and then access them .
-      // var listofReviewsFromLocalStorage = DBHelper.getReviewsFromlocalStorage();
-      // if(listofReviewsFromLocalStorage !== null || listofReviewsFromLocalStorage !== undefined){
-      //     DBHelper.saveReviewsToDatabase(listofReviewsFromLocalStorage);
-      // }
+      // //see if there are any reviews in the local storage , if so save them into server and then access them .
+
 
       DBHelper.sendReviewToServer(jsonToSend);
     } else {

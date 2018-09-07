@@ -3,6 +3,7 @@
 /*eslint no-unused-vars: ["error", { "vars": "local" }]*/
 
 var Restaurants = void 0,
+    resetRestaurants = void 0,
     addMarkersToMap = void 0,
     createRestaurantHTML = void 0,
     neighborhoods = void 0,
@@ -168,6 +169,15 @@ fillRestaurantsHTML = function fillRestaurantsHTML() {
  * Create restaurant HTML.
  */
 createRestaurantHTML = function createRestaurantHTML(restaurant) {
+
+  //Get reviews from local storage if they are added  when offline
+  var offlineRestaurantFromLocalStorage = DBHelper.getRestaurantsFromlocalStorage(restaurant.id);
+
+  if (offlineRestaurantFromLocalStorage !== undefined && offlineRestaurantFromLocalStorage.length !== 0) {
+    var offlineRes = offlineRestaurantFromLocalStorage;
+    restaurant = offlineRes;
+  }
+
   var li = document.createElement("li");
 
   li.role = "listitem";
@@ -199,34 +209,47 @@ createRestaurantHTML = function createRestaurantHTML(restaurant) {
   div.append(name);
 
   var fav = document.createElement("img");
-  if (restaurant.is_favorite === "true") {
+  if (restaurant['is_favorite'] === "true") {
     fav.src = "icons/like.svg";
     fav.alt = "add to favorite";
-  } else {
+    fav.title = "add to favourite";
+  }
+  if (restaurant['is_favorite'] === "false") {
     fav.src = "icons/unlike.svg";
     fav.alt = "remove from favorite";
+    fav.title = "remove to favourite";
   }
 
   var anchor = document.createElement("a");
   anchor.onclick = function () {
-    if (restaurant.is_favorite === "true") {
+    if (restaurant['is_favorite'] === "true") {
+
+      // if(restaurant.hasOwnProperty('is_favorite')){
+      restaurant['is_favorite'] = "false";
       fav.src = "icons/unlike.svg";
       fav.alt = "remove from favorite";
-      if (restaurant.hasOwnProperty('is_favorite')) {
-        restaurant.is_favorite = "false";
-      }
+      // }
 
       // DBHelper.saveRestaurantFavoriteToDatabase(restaurant.is_favorite , restaurant.id);
     } else {
+
+      //if(restaurant.hasOwnProperty('is_favorite')){
+      restaurant['is_favorite'] = "true";
       fav.src = "icons/like.svg";
       fav.alt = "add to favorite";
-      if (restaurant.hasOwnProperty('is_favorite')) {
-        restaurant.is_favorite = "true";
-      }
+      //}
       // restaurant.is_favourite = "true";
     }
-    DBHelper.saveRestaurantFavoriteToDatabase(restaurant.is_favorite, restaurant.id);
+    if (window.navigator.onLine) {
 
+      DBHelper.sendRestaurantFavoriteToServer(restaurant.id, restaurant.is_favorite);
+    } else {
+      // If offline get the existing local storage and save data into local storage 
+      var existing = localStorage.getItem('restaurant_favorite');
+      existing = existing ? JSON.parse(existing) : [];
+      existing.push(restaurant);
+      localStorage.setItem('restaurant_favorite', JSON.stringify(existing));
+    }
     this.append(fav);
   };
   anchor.append(fav);

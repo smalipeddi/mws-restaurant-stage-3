@@ -20,6 +20,8 @@ var urlsToCache = [
   './img/8.jpg',
   './img/9.jpg',
   './img/10.jpg',
+  './icons/like.svg',
+  './icons/unlike.svg',
   './app.js'
 
   
@@ -70,16 +72,5 @@ self.addEventListener("fetch", function(event) {
       })
   );
 });
-  // event.respondWith(
-  //   caches.open(CACHE_NAME).then(function(cache) {
-  //     return cache.match(event.request).then(function (response) {
-  //       return response || fetch(event.request);
-  //       // .then(function(response) {
-  //       //   cache.put(event.request, response.clone());
-  //       //   return response;
-  //       //});
-  //     });
-  //   })
-  // );
-//});
+
 
