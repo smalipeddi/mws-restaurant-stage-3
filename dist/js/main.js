@@ -33,14 +33,11 @@ document.addEventListener("DOMContentLoaded", function (event) {
  * Fetch all neighborhoods and set their HTML.
  */
 fetchNeighborhoods = function fetchNeighborhoods() {
-  DBHelper.fetchNeighborhoods(function (error, neighborhoods) {
-    if (error) {
-      // Got an error
-      console.error(error);
-    } else {
-      self.neighborhoods = neighborhoods;
-      fillNeighborhoodsHTML();
-    }
+  DBHelper.fetchNeighborhoods().then(function (neighborhoods) {
+    self.neighborhoods = neighborhoods;
+    fillNeighborhoodsHTML();
+  }).catch(function (error) {
+    return console.error(error);
   });
 };
 
@@ -63,14 +60,11 @@ fillNeighborhoodsHTML = function fillNeighborhoodsHTML() {
  * Fetch all cuisines and set their HTML.
  */
 fetchCuisines = function fetchCuisines() {
-  DBHelper.fetchCuisines(function (error, cuisines) {
-    if (error) {
-      // Got an error!
-      console.error(error);
-    } else {
-      self.cuisines = cuisines;
-      fillCuisinesHTML();
-    }
+  DBHelper.fetchCuisines().then(function (cuisines) {
+    self.cuisines = cuisines;
+    fillCuisinesHTML();
+  }).catch(function (error) {
+    return console.log(error);
   });
 };
 
@@ -122,14 +116,11 @@ updateRestaurants = function updateRestaurants() {
   var cuisine = cSelect[cIndex].value;
   var neighborhood = nSelect[nIndex].value;
 
-  DBHelper.fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood, function (error, restaurants) {
-    if (error) {
-      // Got an error!
-      console.error(error);
-    } else {
-      resetRestaurants(restaurants);
-      fillRestaurantsHTML();
-    }
+  DBHelper.fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood).then(function (restaurants) {
+    resetRestaurants(restaurants);
+    fillRestaurantsHTML();
+  }).catch(function (error) {
+    return console.error(error);
   });
 };
 
@@ -170,21 +161,11 @@ fillRestaurantsHTML = function fillRestaurantsHTML() {
  */
 createRestaurantHTML = function createRestaurantHTML(restaurant) {
 
-  //Get reviews from local storage if they are added  when offline
-  var offlineRestaurantFromLocalStorage = DBHelper.getRestaurantsFromlocalStorage(restaurant.id);
-
-  if (offlineRestaurantFromLocalStorage !== undefined && offlineRestaurantFromLocalStorage.length !== 0) {
-    var offlineRes = offlineRestaurantFromLocalStorage;
-    restaurant = offlineRes;
-  }
-
   var li = document.createElement("li");
 
   li.role = "listitem";
   li.tabIndex = 0;
   var image = document.createElement("img");
-  image.className = "restaurant-img";
-  image.src = DBHelper.imageUrlForRestaurant(restaurant);
 
   /* Add alt to images */
   image.alt = restaurant.name;
@@ -195,10 +176,39 @@ createRestaurantHTML = function createRestaurantHTML(restaurant) {
   */
   var small_images = restaurant_photograph + "-1x.webp";
   var large_images = restaurant_photograph + "-2x.webp";
-  image.srcset = "images/" + small_images + " 1x" + "," + "images/" + large_images + " 2x";
 
-  image.src = "img/" + restaurant_photograph;
-  image.sizes = "(max-width: 325px) 100vw 50vw";
+  // LAZY LOADING  OF IMAGES
+  var options = {
+    threshold: 0.2
+  };
+
+  var observer = void 0;
+  if ('IntersectionObserver' in window) {
+    observer = new IntersectionObserver(events, options);
+    observer.observe(image);
+  } else {
+    //Just load images as it is without lazy loading
+    displayImages(image);
+  }
+  var displayImages = function displayImages(image) {
+    image.className = 'restaurant-img';
+    image.classNmae = "sunitha";
+    image.src = DBHelper.imageUrlForRestaurant(restaurant);
+    image.srcset = "images/" + small_images + " 1x" + "," + "images/" + large_images + " 2x";
+    image.src = "img/" + restaurant_photograph + ".jpg";
+    image.sizes = "(max-width: 325px) 100vw 50vw";
+  };
+
+  function events(events, observer) {
+    events.forEach(function (event) {
+      if (event.intersectionRatio > 0) {
+        //Display images
+        displayImages(event.target);
+        observer.unobserve(event.target);
+      } else {}
+    });
+  }
+
   li.append(image);
 
   var div = document.createElement("div");
@@ -209,40 +219,15 @@ createRestaurantHTML = function createRestaurantHTML(restaurant) {
   div.append(name);
 
   var fav = document.createElement("img");
-  if (restaurant['is_favorite'] === "true") {
-    fav.src = "icons/like.svg";
-    fav.alt = "add to favorite";
-    fav.title = "add to favourite";
-  }
-  if (restaurant['is_favorite'] === "false") {
-    fav.src = "icons/unlike.svg";
-    fav.alt = "remove from favorite";
-    fav.title = "remove to favourite";
-  }
+  fav.setAttribute('tabIndex', 0);
+  changeFavIcon(fav, restaurant['is_favorite']);
 
   var anchor = document.createElement("a");
   anchor.onclick = function () {
-    if (restaurant['is_favorite'] === "true") {
-
-      // if(restaurant.hasOwnProperty('is_favorite')){
-      restaurant['is_favorite'] = "false";
-      fav.src = "icons/unlike.svg";
-      fav.alt = "remove from favorite";
-      // }
-    } else {
-      restaurant['is_favorite'] = "true";
-      fav.src = "icons/like.svg";
-      fav.alt = "add to favorite";
-    }
-    if (window.navigator.onLine) {
-      DBHelper.sendRestaurantFavoriteToServer(restaurant.id, restaurant.is_favorite);
-    } else {
-      // If offline get the existing local storage and save data into local storage 
-      var existing = localStorage.getItem('restaurant_favorite');
-      existing = existing ? JSON.parse(existing) : [];
-      existing.push(restaurant);
-      localStorage.setItem('restaurant_favorite', JSON.stringify(existing));
-    }
+    var isFavNow = !restaurant['is_favorite'];
+    DBHelper.updateFavouriteStatus(restaurant.id, isFavNow);
+    restaurant.is_favorite = !restaurant.is_favorite;
+    changeFavIcon(fav, JSON.parse(restaurant.is_favorite));
     this.append(fav);
   };
   anchor.append(fav);
@@ -267,6 +252,18 @@ createRestaurantHTML = function createRestaurantHTML(restaurant) {
   div.append(more);
 
   return li;
+};
+
+changeFavIcon = function changeFavIcon(el, isFav) {
+  if (!isFav) {
+    el.src = "icons/unlike.svg";
+    el.alt = "add to favorite";
+    el.title = "add to favourite";
+  } else {
+    el.src = "icons/like.svg";
+    el.alt = "remove from favorite";
+    el.title = "remove from favourite";
+  }
 };
 
 /**

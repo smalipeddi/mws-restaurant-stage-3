@@ -42,9 +42,18 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(clients.claim());
+  console.log('SW activated');
+  const cacheNames = CACHE_NAME;
+  event.waitUntil(
+    caches.keys().then(function(list) {
+      return Promise.all(list.map(function(key) {
+        if (cacheNames.indexOf(key) === -1) {
+          return caches.delete(key);
+        }
+      }));
+    })
+  );
 });
-
 
 self.addEventListener("fetch", function(event) {
   console.log('SW : fetch event in progress.');
@@ -65,12 +74,10 @@ self.addEventListener("fetch", function(event) {
                                        cache.put(event.request, cacheCopy);
                                       })
                                  .then(() => {
-                                    console.log('WORKER: fetch response stored in cache.', event.request.url);
+                                    //console.log('WORKER: fetch response stored in cache.', event.request.url);
                                   });
                             return response;
                       })
       })
   );
 });
-
-

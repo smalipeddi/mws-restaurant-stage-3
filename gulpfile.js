@@ -5,7 +5,7 @@ var gulp = require("gulp");
 var browserSync = require("browser-sync").create();
 var sass = require("gulp-sass");
 var autoprefixer = require("gulp-autoprefixer");
-var eslint = require("gulp-eslint");
+//var eslint = require("gulp-eslint");
 var jasmine = require("gulp-phantom-jasmine");
 var concat = require("gulp-concat");
 var uglify = require("gulp-uglify-es").default;
@@ -92,13 +92,13 @@ gulp.task("lint", () => {
   return gulp.src(["js/**/*.js"])
   // eslint() attaches the lint output to the "eslint" property
   // of the file object so it can be used by other modules.
-    .pipe(eslint())
+  //  .pipe(eslint())
   // eslint.format() outputs the lint results to the console.
   // Alternatively use eslint.formatEach() (see Docs).
-    .pipe(eslint.format())
+  //  .pipe(eslint.format())
   // To have the process exit with an error code (1) on
   // lint error, return the stream and pipe to failAfterError last.
-    .pipe(eslint.failOnError());
+   // .pipe(eslint.failOnError());
 });
 
 

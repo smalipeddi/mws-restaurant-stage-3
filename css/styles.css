@@ -5,7 +5,8 @@ p {
     font-family: Arial, Helvetica, sans-serif;
     font-size: 10pt;
     color: #333;
-    line-height: 1.5
+    line-height: 1.5;
+    margin:0px;
 }
 
 ul,
@@ -211,7 +212,7 @@ button {
     display: inline-block;
     font-size: 10pt;
     margin: 15px 0 0;
-    padding: 8px 30px 10px;
+    padding: 20px 20px 20px 20px;
     text-align: center;
     text-decoration: none;
     text-transform: uppercase;
@@ -549,6 +550,28 @@ textarea#reviewer_comment {
     height: 30%;
     vertical-align: middle
 }
+
+
+.favorite_yes {
+  color: #d73030;
+  font-size: 20px;
+  border-radius: 50%;
+}
+
+.favorite_yes:hover {
+    color: #4c4c4c;
+}
+
+.favorite_no:hover {
+    color: #d73030;
+}
+
+.favorite_no {
+  color: #4c4c4c;
+  font-size: 20px;
+  border-radius: 50%;
+}
+
 
 @media only screen and (min-width:600px) and (max-width:768px) {
     .filter-options h2 {

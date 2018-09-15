@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 /*eslint no-unused-vars: ["error", { "vars": "local" }]*/
 /*global newMap ,initMap ,DBHelper, getParameterByName,fillBreadcrumb ,createReviewHTML,fillRestaurantHoursHTML,fillRestaurantHTML,fillReviewsHTML,fetchRestaurantFromURL,fetchRestaurantById,error */
@@ -6,6 +6,7 @@
 /*eslint no-unused-vars: ["error", { "vars": "local" }]*/
 
 var restaurant = void 0,
+    reviews = void 0,
     initMap = void 0,
     fetchRestaurantFromURL = void 0,
     fillRestaurantHTML = void 0,
@@ -30,52 +31,45 @@ document.addEventListener("DOMContentLoaded", function (event) {
  * Initialize leaflet map
  */
 initMap = function initMap() {
-  fetchRestaurantFromURL(function (error, restaurant) {
-    if (error) {
-      // Got an error!
-      console.error(error);
-    } else {
-      self.newMap = L.map("map", {
-        center: [restaurant.latlng.lat, restaurant.latlng.lng],
-        zoom: 16,
-        scrollWheelZoom: false
-      });
-      L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.jpg70?access_token=pk.eyJ1Ijoic2ZyZW5zIiwiYSI6ImNqaWVzeWJnMjBwb3Yzc3Q0bml3OGo5bnQifQ.XLzOLAtnX3pMu70zmA5YlQ", {
-        mapboxToken: "pk.eyJ1Ijoic2ZyZW5zIiwiYSI6ImNqaWVzeWJnMjBwb3Yzc3Q0bml3OGo5bnQifQ.XLzOLAtnX3pMu70zmA5YlQ",
-        maxZoom: 18,
-        attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, " + "<a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, " + "Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
-        id: "mapbox.streets"
-      }).addTo(newMap);
-      fillBreadcrumb();
-      DBHelper.mapMarkerForRestaurant(self.restaurant, self.newMap);
-    }
+  fetchRestaurantFromURL().then(function (restaurant) {
+    self.newMap = L.map('map', {
+      center: [restaurant.latlng.lat, restaurant.latlng.lng],
+      zoom: 16,
+      scrollWheelZoom: false
+    });
+    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.jpg70?access_token={mapboxToken}', {
+      mapboxToken: 'pk.eyJ1IjoibXJwdW1wa2luZyIsImEiOiJjamoyNXUzcDIwenpyM2tsZm03MDJnOHFqIn0.K5wTgEieIuewCzBwoLVGRw',
+      maxZoom: 18,
+      attribution: '',
+      id: 'mapbox.streets'
+    }).addTo(newMap);
+    fillBreadcrumb();
+    DBHelper.mapMarkerForRestaurant(self.restaurant, self.newMap);
+  }).catch(function (error) {
+    return console.error(error);
   });
 };
 
 /**
  * Get current restaurant from page URL.
  */
-fetchRestaurantFromURL = function fetchRestaurantFromURL(callback) {
+fetchRestaurantFromURL = function fetchRestaurantFromURL() {
   if (self.restaurant) {
     // restaurant already fetched!
-    callback(null, self.restaurant);
-    return;
+    return Promise.resolve(self.restaurant);
   }
-  var id = getParameterByName("id");
-  if (!id) {
+  var id = parseInt(getParameterByName('id'));
+  if (!id || id === NaN) {
     // no id found in URL
-    error = "No restaurant id in URL";
-    callback(error, null);
+    return Promise.reject('No restaurant id in URL');
   } else {
-    DBHelper.fetchRestaurantById(id, function (error, restaurant) {
-      self.restaurant = restaurant;
+    return DBHelper.fetchRestaurantById(id).then(function (restaurant) {
       if (!restaurant) {
-        console.error(error);
-        return;
+        return Promise.reject('Restaurant with ID ' + id + ' was not found');
       }
-
+      self.restaurant = restaurant;
       fillRestaurantHTML();
-      callback(null, restaurant);
+      return restaurant;
     });
   }
 };
@@ -149,7 +143,9 @@ fillRestaurantHTML = function fillRestaurantHTML() {
     fillRestaurantHoursHTML();
   }
 
-  DBHelper.fetchReviewsByRestaurantId(restaurant.id, fillReviewsHTML);
+  DBHelper.fetchReviewsByRestaurantId(restaurant.id).then(function (reviews) {
+    return fillReviewsHTML(reviews);
+  });
 };
 
 /**
@@ -177,7 +173,9 @@ fillRestaurantHoursHTML = function fillRestaurantHoursHTML() {
 /**
  * Create all reviews HTML and add them to the webpage.
  */
-fillReviewsHTML = function fillReviewsHTML(error, reviews) {
+fillReviewsHTML = function fillReviewsHTML() {
+  var reviews = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : self.restaurant.reviews;
+
   //self.restaurant.reviews = reviews;
   var container = document.getElementById("reviews-container");
   var title = document.createElement("h2");
@@ -185,12 +183,13 @@ fillReviewsHTML = function fillReviewsHTML(error, reviews) {
   container.appendChild(title);
   var id = parseInt(getParameterByName('id'));
   //Get reviews from local storage if they are added  when offline
-  var offlineReviewsFromLocalStorage = DBHelper.getReviewsFromlocalStorage(id);
+  // var offlineReviewsFromLocalStorage = DBHelper.getReviewsFromlocalStorage(id);
 
-  if (offlineReviewsFromLocalStorage !== undefined && offlineReviewsFromLocalStorage.length !== 0) {
-    var offlineReviews = offlineReviewsFromLocalStorage;
-    var reviews = reviews.concat(offlineReviews);
-  }
+  // if(offlineReviewsFromLocalStorage !== undefined && offlineReviewsFromLocalStorage.length !== 0){
+  //   var offlineReviews = (offlineReviewsFromLocalStorage);
+  //   var reviews = reviews.concat(offlineReviews);
+  // }
+
 
   if (!reviews) {
     var noReviews = document.createElement("p");
@@ -222,7 +221,7 @@ createReviewHTML = function createReviewHTML(review) {
   li.appendChild(date);
 
   var rating = document.createElement("p");
-  rating.innerHTML = "Rating: " + review.rating;
+  rating.innerHTML = 'Rating: ' + review.rating;
   li.appendChild(rating);
 
   var comments = document.createElement("p");
@@ -237,7 +236,7 @@ addReview = function addReview() {
   console.log("clicked submit");
 
   var url = window.location.href;
-  var id = parseInt(getParameterByName('id'));
+  var id = getParameterByName('id');
 
   var name = document.getElementById('reviewer_name').value;
   var rating = document.getElementById('select_rating');
@@ -258,17 +257,29 @@ addReview = function addReview() {
       "rating": rating_value,
       "comments": comment
     };
-    if (window.navigator.onLine) {
 
-      // //see if there are any reviews in the local storage , if so save them into server and then access them .
-      DBHelper.sendReviewToServer(jsonToSend);
-    } else {
-      // If offline get the existing local storage and save data into local storage 
-      var existing = localStorage.getItem('reviews');
-      existing = existing ? JSON.parse(existing) : [];
-      existing.push(jsonToSend);
-      localStorage.setItem('reviews', JSON.stringify(existing));
+    var offline_obj = {
+      data: jsonToSend,
+      name: 'addReview',
+      object_type: "review"
+
+      //code for offline 
+    };if (!navigator.onLine && offline_obj.name === 'addReview') {
+      DBHelper.sendReviewsWhenOnline(offline_obj);
+      var _container = document.getElementById("reviews-container");
+      var _ul = document.getElementById("reviews-list");
+      _ul.insertBefore(createReviewHTML(offline_obj.data), _ul.childNodes[0]);
+      _container.appendChild(_ul);
+
+      var reviewForm = document.getElementById('reviewForm');
+      reviewForm.reset();
+
+      return;
     }
+
+    //code for online 
+    console.log("sending reviews", jsonToSend);
+    DBHelper.sendReviewsToServer(jsonToSend);
 
     var container = document.getElementById("reviews-container");
     var ul = document.getElementById("reviews-list");
@@ -278,7 +289,6 @@ addReview = function addReview() {
     var reviewForm = document.getElementById('reviewForm');
     reviewForm.reset();
   }
-  return false;
 };
 
 /**
@@ -299,7 +309,7 @@ fillBreadcrumb = function fillBreadcrumb() {
 getParameterByName = function getParameterByName(name, url) {
   if (!url) url = window.location.href;
   name = name.replace(/[\[\]]/g, "\\$&");
-  var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+  var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
       results = regex.exec(url);
   if (!results) return null;
   if (!results[2]) return "";
